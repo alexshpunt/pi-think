@@ -1,0 +1,61 @@
+{
+    "name": "pi-think",
+    "version": "0.1.1",
+    "description": "Explicit, tool-driven reasoning for Pi.",
+    "type": "module",
+    "files": [
+        "src",
+        "resources",
+        "assets",
+        "README.md",
+        "LICENSE"
+    ],
+    "keywords": [
+        "pi-package",
+        "pi-extension",
+        "pi-coding-agent",
+        "reasoning",
+        "thinking",
+        "ai-agent"
+    ],
+    "author": "Aleksandr Shpuntenko",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/alexshpunt/pi-think.git"
+    },
+    "homepage": "https://github.com/alexshpunt/pi-think#readme",
+    "bugs": {
+        "url": "https://github.com/alexshpunt/pi-think/issues"
+    },
+    "engines": {
+        "node": ">=22.19.0"
+    },
+    "publishConfig": {
+        "access": "public"
+    },
+    "pi": {
+        "extensions": [
+            "./src/index.ts"
+        ],
+        "image": "https://raw.githubusercontent.com/alexshpunt/pi-think/main/assets/logo.png"
+    },
+    "scripts": {
+        "typecheck": "tsc --noEmit",
+        "check": "npm run typecheck",
+        "prepack": "npm run check",
+        "prepublishOnly": "npm run check"
+    },
+    "peerDependencies": {
+        "@earendil-works/pi-coding-agent": "*",
+        "@earendil-works/pi-tui": "*",
+        "typebox": "*"
+    },
+    "devDependencies": {
+        "@earendil-works/pi-coding-agent": "0.82.0",
+        "@earendil-works/pi-tui": "0.82.0",
+        "@types/node": "^24.0.4",
+        "typebox": "^1.1.38",
+        "typescript": "^5.9.3"
+    }
+}
