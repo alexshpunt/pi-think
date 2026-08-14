@@ -76,7 +76,12 @@ export default async function registerThink(pi: ExtensionAPI): Promise<void>
         if (
             mode === "on"
             && ctx.thinkingLevel === "off"
-            && ctx.model?.thinkingLevelMap?.off !== null
+            && ctx.model !== undefined
+            && ctx.model.thinkingLevelMap?.off !== null
+            // Codex Responses can keep one response alive indefinitely when a
+            // post-tool continuation is forced to reason again. Keep the safe
+            // initial pass, but do not rewrite Codex continuation requests.
+            && ctx.model.api !== "openai-codex-responses"
             && event.toolResults.some((result) => result.toolName !== TOOL_NAME)
         )
         {
@@ -99,21 +104,22 @@ export default async function registerThink(pi: ExtensionAPI): Promise<void>
             return;
         }
 
-        // Codex can stream empty reasoning items forever when a completed task is
-        // combined with a hard tool choice. Codex follow-ups use a fresh prompt instead.
-        const payload = forceThinkRequest(
-            event.payload,
-            model.api,
-            reasoningPrompt,
-            forcedThink === "initial",
-        );
-
-        if (payload === undefined)
-        {
-            forcedThink = false;
-        }
+        const payload = forceThinkRequest(event.payload, model.api, reasoningPrompt);
+        // Consume the latch before the request is sent. A forced reasoning pass
+        // is one-shot; retries or repeated provider hooks must not create a loop.
+        forcedThink = false;
 
         return payload;
+    });
+
+    pi.on("agent_end", () =>
+    {
+        forcedThink = false;
+    });
+
+    pi.on("agent_settled", () =>
+    {
+        forcedThink = false;
     });
 
     pi.on("session_start", (_event, ctx) =>

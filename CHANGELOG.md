@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-08-14
+
+### Fixed
+
+- Make forced reasoning passes one-shot across retries and repeated provider hooks.
+- Prevent OpenAI Codex Responses from entering unbounded reasoning/commentary streams after tool results by keeping forced reasoning to the initial pass.
+
 ## [0.1.3] - 2026-08-14
 
 ### Changed
@@ -28,7 +35,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial release of the private `think` scratchpad extension.
 - Provider-aware native reasoning controls and configurable reasoning prompts.
 
-[Unreleased]: https://github.com/alexshpunt/pi-think/compare/v0.1.3...HEAD
+[Unreleased]: https://github.com/alexshpunt/pi-think/compare/v0.1.4...HEAD
+[0.1.4]: https://github.com/alexshpunt/pi-think/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/alexshpunt/pi-think/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/alexshpunt/pi-think/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/alexshpunt/pi-think/releases/tag/v0.1.1

@@ -4,7 +4,6 @@ export function forceThinkRequest(
     payloadValue: unknown,
     api: string,
     reasoningPrompt: string,
-    hardToolChoice = true,
 ): Record<string, unknown> | undefined
 {
     if (!isRecord(payloadValue))
@@ -60,12 +59,7 @@ export function forceThinkRequest(
     return {
         ...payloadValue,
         instructions,
-        ...(hardToolChoice
-            ? {}
-            : { input: appendResponsesPrompt(payloadValue.input, reasoningPrompt) }),
-        tool_choice: hardToolChoice
-            ? { type: "function", name: TOOL_NAME }
-            : "auto",
+        tool_choice: { type: "function", name: TOOL_NAME },
         parallel_tool_calls: false,
     };
 }
@@ -96,12 +90,6 @@ function forceGoogleThink(
 function appendPrompt(value: unknown, reasoningPrompt: string): string
 {
     return typeof value === "string" ? `${value}\n\n${reasoningPrompt}` : reasoningPrompt;
-}
-
-function appendResponsesPrompt(value: unknown, reasoningPrompt: string): unknown[]
-{
-    const input: unknown[] = Array.isArray(value) ? [...value] : [];
-    return [...input, { role: "developer", content: reasoningPrompt }];
 }
 
 function appendChatPrompt(value: unknown, reasoningPrompt: string): unknown[]

@@ -20,7 +20,7 @@ The useful part is control. You can change the reasoning prompt, tell the agent 
 
 - Adds a private `think` scratchpad to Pi.
 - Uses Pi's real provider-specific thinking-off controls.
-- Can require another reasoning pass after tools return new information.
+- Can require another reasoning pass after tools return new information (except on OpenAI Codex Responses, where forced post-tool passes can cause unbounded provider streams).
 - Renders reasoning as a compact block that can be expanded.
 - Refuses to run when a model cannot fully disable native reasoning.
 
