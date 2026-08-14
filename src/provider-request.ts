@@ -4,6 +4,7 @@ export function forceThinkRequest(
     payloadValue: unknown,
     api: string,
     reasoningPrompt: string,
+    hardToolChoice = true,
 ): Record<string, unknown> | undefined
 {
     if (!isRecord(payloadValue))
@@ -11,7 +12,7 @@ export function forceThinkRequest(
         return undefined;
     }
 
-    if (api === "google-generative-ai")
+    if (api === "google-generative-ai" || api === "google-vertex")
     {
         return forceGoogleThink(payloadValue, reasoningPrompt);
     }
@@ -22,30 +23,49 @@ export function forceThinkRequest(
     }
 
     const tools: unknown[] = payloadValue.tools;
-    const thinkTool: unknown = tools.find((tool) => toolName(tool) === TOOL_NAME);
 
-    if (thinkTool === undefined)
+    if (!tools.some((tool) => hasToolName(tool, TOOL_NAME)))
     {
         return undefined;
     }
 
+    // Keep every tool definition in the request. Provider caches and continuation
+    // transports may otherwise carry the narrowed schema into the following turn.
     if (api === "anthropic-messages")
     {
         const system = appendPrompt(payloadValue.system, reasoningPrompt);
         return {
             ...payloadValue,
             system,
-            tools: [thinkTool],
             tool_choice: { type: "tool", name: TOOL_NAME, disable_parallel_tool_use: true },
         };
+    }
+
+    if (api === "openai-completions")
+    {
+        return {
+            ...payloadValue,
+            messages: appendChatPrompt(payloadValue.messages, reasoningPrompt),
+            tool_choice: { type: "function", function: { name: TOOL_NAME } },
+            parallel_tool_calls: false,
+        };
+    }
+
+    if (typeof payloadValue.instructions !== "string")
+    {
+        return undefined;
     }
 
     const instructions = appendPrompt(payloadValue.instructions, reasoningPrompt);
     return {
         ...payloadValue,
         instructions,
-        tools: [thinkTool],
-        tool_choice: "required",
+        ...(hardToolChoice
+            ? {}
+            : { input: appendResponsesPrompt(payloadValue.input, reasoningPrompt) }),
+        tool_choice: hardToolChoice
+            ? { type: "function", name: TOOL_NAME }
+            : "auto",
         parallel_tool_calls: false,
     };
 }
@@ -57,9 +77,8 @@ function forceGoogleThink(
 {
     const config = isRecord(payload.config) ? payload.config : {};
     const tools: unknown[] = Array.isArray(config.tools) ? config.tools : [];
-    const thinkTool: unknown = tools.find((tool) => toolName(tool) === TOOL_NAME);
 
-    if (thinkTool === undefined)
+    if (!tools.some((tool) => hasToolName(tool, TOOL_NAME)))
     {
         return undefined;
     }
@@ -69,7 +88,6 @@ function forceGoogleThink(
         config: {
             ...config,
             systemInstruction: appendPrompt(config.systemInstruction, reasoningPrompt),
-            tools: [thinkTool],
             toolConfig: { functionCallingConfig: { mode: "ANY", allowedFunctionNames: [TOOL_NAME] } },
         },
     };
@@ -78,6 +96,54 @@ function forceGoogleThink(
 function appendPrompt(value: unknown, reasoningPrompt: string): string
 {
     return typeof value === "string" ? `${value}\n\n${reasoningPrompt}` : reasoningPrompt;
+}
+
+function appendResponsesPrompt(value: unknown, reasoningPrompt: string): unknown[]
+{
+    const input: unknown[] = Array.isArray(value) ? [...value] : [];
+    return [...input, { role: "developer", content: reasoningPrompt }];
+}
+
+function appendChatPrompt(value: unknown, reasoningPrompt: string): unknown[]
+{
+    const messages: unknown[] = Array.isArray(value) ? [...value] : [];
+
+    for (let index = messages.length - 1; index >= 0; index -= 1)
+    {
+        const message = messages[index];
+
+        if (
+            isRecord(message)
+            && (message.role === "system" || message.role === "developer")
+            && typeof message.content === "string"
+        )
+        {
+            messages[index] = {
+                ...message,
+                content: appendPrompt(message.content, reasoningPrompt),
+            };
+            return messages;
+        }
+    }
+
+    return [{ role: "system", content: reasoningPrompt }, ...messages];
+}
+
+function hasToolName(tool: unknown, name: string): boolean
+{
+    if (toolName(tool) === name)
+    {
+        return true;
+    }
+
+    if (!isRecord(tool) || !Array.isArray(tool.functionDeclarations))
+    {
+        return false;
+    }
+
+    return tool.functionDeclarations.some(
+        (declaration) => isRecord(declaration) && declaration.name === name,
+    );
 }
 
 function toolName(tool: unknown): string | undefined

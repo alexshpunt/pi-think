@@ -1,6 +1,6 @@
 {
     "name": "pi-think",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "description": "Explicit, tool-driven reasoning for Pi.",
     "type": "module",
     "files": [
@@ -8,6 +8,7 @@
         "resources",
         "assets",
         "README.md",
+        "CHANGELOG.md",
         "LICENSE"
     ],
     "keywords": [

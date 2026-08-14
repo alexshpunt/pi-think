@@ -27,7 +27,7 @@ export default async function registerThink(pi: ExtensionAPI): Promise<void>
         loadReasoningPrompt(),
     ]);
     let mode = settings.mode;
-    let forcedThink = false;
+    let forcedThink: false | "initial" | "after-tool" = false;
 
     pi.registerTool({
         renderShell: "self",
@@ -66,7 +66,9 @@ export default async function registerThink(pi: ExtensionAPI): Promise<void>
             || ctx.model.thinkingLevelMap?.off !== null;
         forcedThink = mode === "on"
             && ctx.thinkingLevel === "off"
-            && nativeReasoningCanBeDisabled;
+            && nativeReasoningCanBeDisabled
+            ? "initial"
+            : false;
     });
 
     pi.on("turn_end", (event, ctx) =>
@@ -78,7 +80,7 @@ export default async function registerThink(pi: ExtensionAPI): Promise<void>
             && event.toolResults.some((result) => result.toolName !== TOOL_NAME)
         )
         {
-            forcedThink = true;
+            forcedThink = "after-tool";
         }
     });
 
@@ -97,7 +99,14 @@ export default async function registerThink(pi: ExtensionAPI): Promise<void>
             return;
         }
 
-        const payload = forceThinkRequest(event.payload, model.api, reasoningPrompt);
+        // Codex can stream empty reasoning items forever when a completed task is
+        // combined with a hard tool choice. Codex follow-ups use a fresh prompt instead.
+        const payload = forceThinkRequest(
+            event.payload,
+            model.api,
+            reasoningPrompt,
+            forcedThink === "initial",
+        );
 
         if (payload === undefined)
         {
